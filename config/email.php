@@ -1,43 +1,50 @@
 <?php
-use PHPMailer\PHPMailer\PHPMailer;
-use PHPMailer\PHPMailer\SMTP;
-use PHPMailer\PHPMailer\Exception;
+// config/email.php
 
-require_once __DIR__ . '/../includes/phpmailer/PHPMailer.php';
-require_once __DIR__ . '/../includes/phpmailer/SMTP.php';
-require_once __DIR__ . '/../includes/phpmailer/Exception.php';
-
-/**
- * Send email using SMTP (reads credentials from environment variables)
- */
 function sendEmail($to, $subject, $body, $altBody = '') {
-    $mail = new PHPMailer(true);
+    $apiKey = getenv('RESEND_API_KEY');
+    $fromEmail = getenv('RESEND_FROM_EMAIL') ?: 'SaraJane <onboarding@resend.dev>';
 
-    try {
-        // SMTP configuration from environment variables
-        $mail->isSMTP();
-        $mail->Host       = getenv('SMTP_HOST') ?: 'smtp.gmail.com';
-        $mail->SMTPAuth   = true;
-        $mail->Username   = getenv('SMTP_USER') ?: '';
-        $mail->Password   = getenv('SMTP_PASS') ?: '';
-        $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
-        $mail->Port       = getenv('SMTP_PORT') ?: 587;
-
-        // Sender & recipient
-        $mail->setFrom(getenv('SMTP_USER') ?: 'noreply@sarajane.com', 'SaraJane Hair Care');
-        $mail->addAddress($to);
-
-        // Content
-        $mail->isHTML(true);
-        $mail->Subject = $subject;
-        $mail->Body    = $body;
-        $mail->AltBody = $altBody ?: strip_tags($body);
-
-        $mail->send();
-        return true;
-    } catch (Exception $e) {
-        error_log("Email could not be sent: {$mail->ErrorInfo}");
-        return "Email could not be sent. Mailer Error: {$mail->ErrorInfo}";
+    if (!$apiKey) {
+        error_log('RESEND_API_KEY is missing.');
+        return 'Email API key is missing.';
     }
+
+    $payload = [
+        'from' => $fromEmail,
+        'to' => [$to],
+        'subject' => $subject,
+        'html' => $body,
+    ];
+
+    $ch = curl_init('https://api.resend.com/emails');
+
+    curl_setopt_array($ch, [
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_POST => true,
+        CURLOPT_HTTPHEADER => [
+            'Authorization: Bearer ' . $apiKey,
+            'Content-Type: application/json',
+        ],
+        CURLOPT_POSTFIELDS => json_encode($payload),
+        CURLOPT_TIMEOUT => 10,
+    ]);
+
+    $response = curl_exec($ch);
+    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    $curlError = curl_error($ch);
+
+    curl_close($ch);
+
+    if ($response === false || $curlError) {
+        error_log('Resend cURL error: ' . $curlError);
+        return 'Email could not be sent. API connection failed.';
+    }
+
+    if ($httpCode >= 200 && $httpCode < 300) {
+        return true;
+    }
+
+    error_log('Resend API error: HTTP ' . $httpCode . ' - ' . $response);
+    return 'Email could not be sent. API error: ' . $response;
 }
-?>

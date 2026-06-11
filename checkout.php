@@ -5,9 +5,11 @@ require_once 'config/database.php';
 require_once 'includes/csrf.php';
 
 $pageTitle = "Checkout";
+
+// Generate a fresh CSRF token for this page view
 $csrf_token = generateCSRFToken('checkout');
 
-// Fetch cart items
+// Fetch cart items (same as before)
 $cartItems = [];
 $totalAmount = 0;
 $subtotal = 0;
@@ -21,11 +23,9 @@ if(isset($_SESSION['user_id'])){
     ");
     $stmt->execute([$_SESSION['user_id']]);
     $cartItems = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
     foreach($cartItems as $item){
         $subtotal += $item['price'] * $item['quantity'];
     }
-    
     $totalAmount = $subtotal;
 }
 
@@ -39,8 +39,15 @@ $error = '';
 if($_SERVER['REQUEST_METHOD'] === 'POST'){
     // Verify CSRF token
     if (!verifyCSRFToken($_POST['csrf_token'] ?? '', 'checkout')) {
-        $error = 'Invalid security token. Please refresh the page.';
+        // Token invalid – regenerate a new token and show error
+        $_SESSION['error_message'] = 'Invalid security token. Please try again.';
+        // Generate new token for the next attempt
+        $csrf_token = generateCSRFToken('checkout');
+        // Redirect to the same page to avoid reposting
+        header('Location: checkout.php');
+        exit;
     } else {
+        // Token is valid – proceed with normal processing
         $first_name = trim($_POST['first_name'] ?? '');
         $last_name = trim($_POST['last_name'] ?? '');
         $email = trim($_POST['email'] ?? '');
@@ -88,7 +95,6 @@ if($_SERVER['REQUEST_METHOD'] === 'POST'){
                 'taxes' => 5.00,
                 'cart_items' => $cartItems
             ];
-            
             header("Location: payment.php");
             exit;
         }
@@ -100,6 +106,7 @@ require_once 'includes/header.php';
 
 <div class="checkout-page py-5">
     <div class="container">
+        <!-- Progress Indicator (unchanged) -->
         <div class="checkout-progress">
             <div class="progress-steps">
                 <div class="step completed"><span class="step-number"><i class="fas fa-check"></i></span><span class="step-label">Cart</span></div>
@@ -118,11 +125,22 @@ require_once 'includes/header.php';
             </div>
         <?php endif; ?>
         
+        <?php if(isset($_SESSION['error_message'])): ?>
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                <i class="fas fa-exclamation-circle me-2"></i>
+                <?php echo htmlspecialchars($_SESSION['error_message']); ?>
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+            <?php unset($_SESSION['error_message']); ?>
+        <?php endif; ?>
+        
         <div class="row g-5">
             <div class="col-lg-8">
                 <form method="POST" class="checkout-form needs-validation" novalidate>
                     <input type="hidden" name="csrf_token" value="<?php echo $csrf_token; ?>">
                     
+                    <!-- Rest of the form (same as before) -->
+                    <!-- Shipping Address Section -->
                     <div class="form-section mb-4">
                         <h3 class="section-title">Shipping Address</h3>
                         <div class="row g-3">
@@ -130,49 +148,42 @@ require_once 'includes/header.php';
                                 <div class="form-group">
                                     <label class="form-label">First Name *</label>
                                     <input type="text" name="first_name" class="form-control form-control-lg" value="<?php echo htmlspecialchars($_POST['first_name'] ?? ''); ?>" required>
-                                    <div class="invalid-feedback">Please enter your first name.</div>
                                 </div>
                             </div>
                             <div class="col-md-6">
                                 <div class="form-group">
                                     <label class="form-label">Last Name *</label>
                                     <input type="text" name="last_name" class="form-control form-control-lg" value="<?php echo htmlspecialchars($_POST['last_name'] ?? ''); ?>" required>
-                                    <div class="invalid-feedback">Please enter your last name.</div>
                                 </div>
                             </div>
                             <div class="col-12">
                                 <div class="form-group">
                                     <label class="form-label">Email Address *</label>
                                     <input type="email" name="email" class="form-control form-control-lg" value="<?php echo htmlspecialchars($_POST['email'] ?? ''); ?>" required>
-                                    <div class="invalid-feedback">Please enter a valid email address.</div>
                                 </div>
                             </div>
                             <div class="col-12">
                                 <div class="form-group">
                                     <label class="form-label">Street Address *</label>
                                     <input type="text" name="address" class="form-control form-control-lg" value="<?php echo htmlspecialchars($_POST['address'] ?? ''); ?>" placeholder="Street address, P.O. box, company name" required>
-                                    <div class="invalid-feedback">Please enter your address.</div>
                                 </div>
                             </div>
                             <div class="col-md-5">
                                 <div class="form-group">
                                     <label class="form-label">City *</label>
                                     <input type="text" name="city" class="form-control form-control-lg" value="<?php echo htmlspecialchars($_POST['city'] ?? ''); ?>" required>
-                                    <div class="invalid-feedback">Please enter your city.</div>
                                 </div>
                             </div>
                             <div class="col-md-4">
                                 <div class="form-group">
                                     <label class="form-label">State *</label>
                                     <input type="text" name="state" class="form-control form-control-lg" value="<?php echo htmlspecialchars($_POST['state'] ?? ''); ?>" required>
-                                    <div class="invalid-feedback">Please enter your state.</div>
                                 </div>
                             </div>
                             <div class="col-md-3">
                                 <div class="form-group">
                                     <label class="form-label">ZIP Code *</label>
                                     <input type="text" name="zip_code" class="form-control form-control-lg" value="<?php echo htmlspecialchars($_POST['zip_code'] ?? ''); ?>" required>
-                                    <div class="invalid-feedback">Please enter your ZIP code.</div>
                                 </div>
                             </div>
                             <div class="col-12">
@@ -184,6 +195,7 @@ require_once 'includes/header.php';
                         </div>
                     </div>
                     
+                    <!-- Shipping Method Section -->
                     <div class="form-section mb-4">
                         <h3 class="section-title">Shipping Method</h3>
                         <div class="shipping-methods">

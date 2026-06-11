@@ -1,0 +1,29 @@
+# Environment files
+.env
+.env.local
+.env.production
+
+# Logs and cache
+logs/
+cache/
+*.log
+
+# Uploaded files (optional – keep if needed)
+uploads/products/
+
+# Composer (if used)
+vendor/
+composer.lock
+
+# VSCode / IDE
+.vscode/
+.idea/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Backup files
+*.sql
+*.sql.gz
+*.backup

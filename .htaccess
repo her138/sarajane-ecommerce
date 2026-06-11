@@ -1,0 +1,25 @@
+# Custom error pages
+ErrorDocument 404 /ecommerce-website/404.php
+ErrorDocument 500 /ecommerce-website/500.php
+
+# Prevent directory listing
+Options -Indexes
+
+# Enable URL rewriting (if needed for clean URLs – optional)
+RewriteEngine On
+
+# Redirect to HTTPS (optional – uncomment if you have SSL)
+# RewriteCond %{HTTPS} off
+# RewriteRule ^(.*)$ https://%{HTTP_HOST}/$1 [R=301,L]
+
+# Block access to sensitive files
+<FilesMatch "\.(ini|log|sql|bak|sh)$">
+    Order allow,deny
+    Deny from all
+</FilesMatch>
+
+# Protect .htaccess itself
+<Files .htaccess>
+    Order allow,deny
+    Deny from all
+</Files>

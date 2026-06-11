@@ -1,55 +1,56 @@
 <?php
-/**
- * CSRF Protection Helper
- */
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
+// includes/csrf.php
 
-/**
- * Generate and store a CSRF token
- */
+require_once __DIR__ . '/../config/session.php';
+
 function generateCSRFToken($action = 'default') {
     if (!isset($_SESSION['csrf_tokens'])) {
         $_SESSION['csrf_tokens'] = [];
     }
 
-    // Reuse a valid token for the same action so AJAX-heavy pages do not
-    // break after the first request. Expired tokens are rotated automatically.
-    if (isset($_SESSION['csrf_tokens'][$action]) &&
+    if (
+        isset($_SESSION['csrf_tokens'][$action]['token']) &&
         isset($_SESSION['csrf_tokens'][$action]['expires']) &&
-        $_SESSION['csrf_tokens'][$action]['expires'] >= time()) {
+        $_SESSION['csrf_tokens'][$action]['expires'] >= time()
+    ) {
         return $_SESSION['csrf_tokens'][$action]['token'];
     }
 
     $token = bin2hex(random_bytes(32));
+
     $_SESSION['csrf_tokens'][$action] = [
         'token' => $token,
-        'expires' => time() + 3600 // 1 hour
+        'expires' => time() + 3600
     ];
+
     return $token;
 }
 
-/**
- * Verify CSRF token
- */
 function verifyCSRFToken($token, $action = 'default') {
+    if (empty($token)) {
+        return false;
+    }
+
     if (!isset($_SESSION['csrf_tokens'][$action])) {
         return false;
     }
+
     $stored = $_SESSION['csrf_tokens'][$action];
+
+    if (!isset($stored['token'], $stored['expires'])) {
+        return false;
+    }
+
     if ($stored['expires'] < time()) {
         unset($_SESSION['csrf_tokens'][$action]);
         return false;
     }
+
     return hash_equals($stored['token'], $token);
 }
 
-/**
- * Output hidden CSRF field
- */
 function csrf_field($action = 'default') {
     $token = generateCSRFToken($action);
-    return '<input type="hidden" name="csrf_token" value="' . htmlspecialchars($token) . '">';
+    return '<input type="hidden" name="csrf_token" value="' . htmlspecialchars($token, ENT_QUOTES, 'UTF-8') . '">';
 }
 ?>

@@ -1,9 +1,9 @@
 <?php
 // ajax/add_to_cart.php
 
-require_once "../config/session.php";
-require_once "../config/database.php";
-require_once "../includes/csrf.php";
+require_once __DIR__ . '/../config/session.php';
+require_once __DIR__ . '/../config/database.php';
+require_once __DIR__ . '/../includes/csrf.php';
 
 header("Content-Type: application/json");
 

@@ -71,8 +71,7 @@ if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQ
 }
 
 // Redirect back
-session_start();
-if ($success) {
+require_once __DIR__ . '/config/session.php';if ($success) {
     $_SESSION['contact_success'] = $success;
 } else {
     $_SESSION['contact_error'] = $error;

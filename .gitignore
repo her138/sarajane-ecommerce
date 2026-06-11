@@ -27,3 +27,5 @@ Thumbs.db
 *.sql
 *.sql.gz
 *.backup
+logs/*.log
+uploads/tmp/

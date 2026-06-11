@@ -69,104 +69,28 @@
     </div>
 </footer>
 
+<?php
+// Page-wide CSRF tokens used by AJAX calls. Generated before script.js loads.
+require_once __DIR__ . '/../config/session.php';
+require_once __DIR__ . '/csrf.php';
+$newsletter_token = generateCSRFToken('newsletter');
+$cart_token = generateCSRFToken('cart');
+$wishlist_token = generateCSRFToken('wishlist');
+?>
+<script>
+window.SaraJane = window.SaraJane || {};
+window.SaraJane.csrf = {
+    newsletter: '<?php echo $newsletter_token; ?>',
+    cart: '<?php echo $cart_token; ?>',
+    wishlist: '<?php echo $wishlist_token; ?>'
+};
+window.SaraJane.siteUrl = '<?php echo SITE_URL; ?>';
+</script>
+
 <!-- Bootstrap JS -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
 <!-- Custom JS -->
 <script src="<?php echo SITE_URL; ?>assets/js/script.js"></script>
-
-<?php
-// Generate CSRF token for newsletter subscription
-require_once __DIR__ . '/config/session.php';
-require_once __DIR__ . '/includes/csrf.php';
-$newsletter_token = generateCSRFToken('newsletter');
-?>
-
-<script>
-// Update cart count dynamically
-function updateCartCount() {
-    fetch('<?php echo SITE_URL; ?>ajax/get_cart_count.php')
-        .then(response => response.json())
-        .then(data => {
-            const badge = document.querySelector('.cart-badge');
-            if (badge) badge.textContent = data.count;
-        })
-        .catch(err => console.warn('Cart update failed:', err));
-}
-
-// Add to cart with animation (for .add-to-cart buttons)
-document.querySelectorAll('.add-to-cart')?.forEach(button => {
-    button.addEventListener('click', function(e) {
-        e.preventDefault();
-        const productId = this.dataset.productId;
-        const quantity = this.dataset.quantity || 1;
-        
-        fetch('<?php echo SITE_URL; ?>ajax/add_to_cart.php', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: `product_id=${productId}&quantity=${quantity}`
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                const badge = document.querySelector('.cart-badge');
-                if (badge) {
-                    badge.classList.add('cart-badge-update');
-                    setTimeout(() => badge.classList.remove('cart-badge-update'), 300);
-                }
-                updateCartCount();
-                showNotification('Product added to cart!', 'success');
-            } else {
-                showNotification(data.message || 'Error adding to cart', 'error');
-            }
-        })
-        .catch(() => showNotification('Network error. Please try again.', 'error'));
-    });
-});
-
-// Global notification function
-function showNotification(message, type) {
-    const existing = document.querySelector('.custom-notification');
-    if (existing) existing.remove();
-    
-    const notification = document.createElement('div');
-    notification.className = 'custom-notification';
-    notification.textContent = message;
-    notification.style.backgroundColor = type === 'success' ? '#5a3e5e' : '#dc3545';
-    notification.style.color = 'white';
-    document.body.appendChild(notification);
-    
-    setTimeout(() => notification.remove(), 3000);
-}
-
-// Newsletter subscription (AJAX) with CSRF
-const newsletterForm = document.getElementById('newsletterForm');
-if (newsletterForm) {
-    newsletterForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const emailInput = newsletterForm.querySelector('input[type="email"]');
-        const email = emailInput.value;
-        const csrfToken = '<?php echo $newsletter_token; ?>';
-        const btn = newsletterForm.querySelector('button');
-        btn.disabled = true;
-        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
-        
-        try {
-            const res = await fetch('<?php echo SITE_URL; ?>ajax/subscribe.php', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email: email, csrf_token: csrfToken })
-            });
-            const data = await res.json();
-            showNotification(data.message || (data.success ? 'Subscribed!' : 'Error'), data.success ? 'success' : 'error');
-            if (data.success) emailInput.value = '';
-        } catch (err) {
-            showNotification('Something went wrong. Please try again.', 'error');
-        }
-        btn.disabled = false;
-        btn.innerHTML = '<i class="fas fa-paper-plane"></i>';
-    });
-}
-</script>
 
 </body>
 </html>

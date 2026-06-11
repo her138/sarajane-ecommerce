@@ -1,6 +1,6 @@
 # Custom error pages
-ErrorDocument 404 /ecommerce-website/404.php
-ErrorDocument 500 /ecommerce-website/500.php
+ErrorDocument 404 /404.php
+ErrorDocument 500 /500.php
 
 # Prevent directory listing
 Options -Indexes
@@ -13,7 +13,7 @@ RewriteEngine On
 # RewriteRule ^(.*)$ https://%{HTTP_HOST}/$1 [R=301,L]
 
 # Block access to sensitive files
-<FilesMatch "\.(ini|log|sql|bak|sh)$">
+<FilesMatch "\.(env|ini|log|sql|bak|sh)$">
     Order allow,deny
     Deny from all
 </FilesMatch>

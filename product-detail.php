@@ -1,7 +1,6 @@
 <?php
 $pageTitle = "Product Details - SaraJane";
 require_once 'config/session.php';
-require_once 'includes/auth_check.php';
 require_once 'includes/header.php';
 
 if (!isset($_GET['id'])) {
@@ -367,7 +366,7 @@ document.addEventListener('DOMContentLoaded', function() {
             fetch('<?php echo SITE_URL; ?>ajax/add_to_cart.php', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                body: `product_id=${productId}&quantity=1`
+                body: `product_id=${encodeURIComponent(productId)}&quantity=1&csrf_token=${encodeURIComponent(window.SaraJane?.csrf?.cart || '')}`
             })
             .then(response => response.json())
             .then(data => {
@@ -425,7 +424,7 @@ document.addEventListener('DOMContentLoaded', function() {
             fetch('<?php echo SITE_URL; ?>ajax/toggle_favorite.php', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                body: `product_id=${productId}&action=${action}`
+                body: `product_id=${encodeURIComponent(productId)}&action=${encodeURIComponent(action)}&csrf_token=${encodeURIComponent(window.SaraJane?.csrf?.wishlist || '')}`
             })
             .then(response => response.json())
             .then(data => {

@@ -5,6 +5,7 @@ if (!isset($_SESSION)) {
 
 if (!isset($_SESSION['user_id'])) {
     $_SESSION['redirect_after_login'] = $_SERVER['REQUEST_URI'];
-    header("Location: /ecommerce-website/login.php");
+    $loginUrl = (defined('SITE_URL') ? SITE_URL : '/') . 'login.php';
+    header('Location: ' . $loginUrl);
     exit;
 }

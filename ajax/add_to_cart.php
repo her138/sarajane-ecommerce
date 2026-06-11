@@ -15,17 +15,15 @@ if (!isset($_POST['product_id'])) {
     exit;
 }
 
-if (isset($_POST['csrf_token'])) {
-    if (!verifyCSRFToken($_POST['csrf_token'], 'wishlist')) {
-        echo json_encode(["success" => false, "message" => "Invalid security token"]);
-        exit;
-    }
+if (!verifyCSRFToken($_POST['csrf_token'] ?? '', 'cart')) {
+    echo json_encode(["success" => false, "message" => "Invalid security token"]);
+    exit;
 }
 
 
 $user_id = $_SESSION['user_id'];
 $product_id = (int) $_POST['product_id'];
-$quantity = isset($_POST['quantity']) ? (int) $_POST['quantity'] : 1;
+$quantity = isset($_POST['quantity']) ? max(1, (int) $_POST['quantity']) : 1;
 
 /* Check product */
 $stmt = $pdo->prepare("SELECT stock_quantity FROM products WHERE id = ?");
@@ -34,6 +32,11 @@ $product = $stmt->fetch();
 
 if (!$product) {
     echo json_encode(["success" => false, "message" => "Product not found"]);
+    exit;
+}
+
+if ((int)$product['stock_quantity'] <= 0) {
+    echo json_encode(["success" => false, "message" => "This product is out of stock"]);
     exit;
 }
 
@@ -52,6 +55,10 @@ if ($existing) {
     $update = $pdo->prepare("UPDATE cart SET quantity = ? WHERE id = ?");
     $update->execute([$newQty, $existing['id']]);
 } else {
+    if ($quantity > (int)$product['stock_quantity']) {
+        echo json_encode(["success" => false, "message" => "Not enough stock"]);
+        exit;
+    }
     $insert = $pdo->prepare("INSERT INTO cart (user_id, product_id, quantity) VALUES (?, ?, ?)");
     $insert->execute([$user_id, $product_id, $quantity]);
 }

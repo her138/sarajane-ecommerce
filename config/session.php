@@ -11,8 +11,9 @@ if (session_status() === PHP_SESSION_NONE) {
     session_set_cookie_params([
         'lifetime' => 86400, // 24 hours
         'path' => '/',
-        'domain' => $_SERVER['HTTP_HOST'],
-        'secure' => isset($_SERVER['HTTPS']), // Auto-detect HTTPS
+        // Leave domain unset so sessions work on localhost, subfolders, and hosts with ports.
+        'domain' => '',
+        'secure' => (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off'), // Auto-detect HTTPS
         'httponly' => true,
         'samesite' => 'Lax'
     ]);

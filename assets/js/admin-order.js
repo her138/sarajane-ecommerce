@@ -90,7 +90,7 @@ function initSendEmailButtons() {
             this.disabled = true;
             
             // Use absolute path from site root
-            fetch('/ecommerce-website/ajax/send-order-email.php', {
+            fetch((window.SaraJane?.siteUrl || '../') + 'ajax/send-order-email.php', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ order_id: orderId, email: email })

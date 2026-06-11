@@ -92,10 +92,10 @@ function initNewsletter() {
         btn.disabled = true;
         btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
         try {
-            const res = await fetch('ajax/subscribe.php', {
+            const res = await fetch((window.SaraJane?.siteUrl || '') + 'ajax/subscribe.php', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email })
+                body: JSON.stringify({ email, csrf_token: window.SaraJane?.csrf?.newsletter || '' })
             });
             const data = await res.json();
             showNotification(data.message || (data.success ? 'Subscribed!' : 'Error'), data.success ? 'success' : 'error');
@@ -137,7 +137,7 @@ function initCartCount() {
 }
 async function updateCartCount() {
     try {
-        const res = await fetch('ajax/get_cart_count.php');
+        const res = await fetch((window.SaraJane?.siteUrl || '') + 'ajax/get_cart_count.php');
         const data = await res.json();
         document.querySelectorAll('.cart-badge, .count').forEach(badge => {
             badge.textContent = data.count;
@@ -166,7 +166,8 @@ async function handleAddToCart(e) {
         const formData = new FormData();
         formData.append('product_id', productId);
         formData.append('quantity', 1);
-        const res = await fetch('ajax/add_to_cart.php', { method: 'POST', body: formData });
+        formData.append('csrf_token', window.SaraJane?.csrf?.cart || '');
+        const res = await fetch((window.SaraJane?.siteUrl || '') + 'ajax/add_to_cart.php', { method: 'POST', body: formData });
         const data = await res.json();
 
         if (data.success) {
@@ -209,7 +210,8 @@ async function handleCartRemove(e) {
     try {
         const formData = new FormData();
         formData.append('cart_id', cartId);
-        const res = await fetch('ajax/remove_cart_item.php', {
+        formData.append('csrf_token', window.SaraJane?.csrf?.cart || '');
+        const res = await fetch((window.SaraJane?.siteUrl || '') + 'ajax/remove_cart_item.php', {
             method: 'POST',
             body: formData
         });
@@ -260,7 +262,8 @@ async function updateCartItemQuantity(cartId, quantity) {
         formData.append('update_item', '1');
         formData.append('cart_id', cartId);
         formData.append('quantity', quantity);
-        const res = await fetch('cart.php', {
+        formData.append('csrf_token', window.SaraJane?.csrf?.cart || '');
+        const res = await fetch((window.SaraJane?.siteUrl || '') + 'cart.php', {
             method: 'POST',
             body: formData,
             headers: { 'X-Requested-With': 'XMLHttpRequest' }
@@ -313,10 +316,10 @@ async function handleWishlistRemove(e) {
     if (!confirm('Remove this item from your wishlist?')) return;
 
     try {
-        const res = await fetch('ajax/remove_wishlist.php', {
+        const res = await fetch((window.SaraJane?.siteUrl || '') + 'ajax/remove_wishlist.php', {
             method: 'POST',
             headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: `product_id=${productId}`
+            body: `product_id=${encodeURIComponent(productId)}&csrf_token=${encodeURIComponent(window.SaraJane?.csrf?.wishlist || '')}`
         });
         const data = await res.json();
         if (data.success) {

@@ -1,6 +1,5 @@
 <?php
 $pageTitle = "Shop All Products";
-require_once 'includes/auth_check.php';
 require_once 'includes/header.php';
 
 // Get filters from URL with sanitization

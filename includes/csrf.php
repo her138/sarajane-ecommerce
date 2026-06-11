@@ -13,6 +13,15 @@ function generateCSRFToken($action = 'default') {
     if (!isset($_SESSION['csrf_tokens'])) {
         $_SESSION['csrf_tokens'] = [];
     }
+
+    // Reuse a valid token for the same action so AJAX-heavy pages do not
+    // break after the first request. Expired tokens are rotated automatically.
+    if (isset($_SESSION['csrf_tokens'][$action]) &&
+        isset($_SESSION['csrf_tokens'][$action]['expires']) &&
+        $_SESSION['csrf_tokens'][$action]['expires'] >= time()) {
+        return $_SESSION['csrf_tokens'][$action]['token'];
+    }
+
     $token = bin2hex(random_bytes(32));
     $_SESSION['csrf_tokens'][$action] = [
         'token' => $token,
@@ -33,12 +42,7 @@ function verifyCSRFToken($token, $action = 'default') {
         unset($_SESSION['csrf_tokens'][$action]);
         return false;
     }
-    if (hash_equals($stored['token'], $token)) {
-        // Token used – delete it (one-time use)
-        unset($_SESSION['csrf_tokens'][$action]);
-        return true;
-    }
-    return false;
+    return hash_equals($stored['token'], $token);
 }
 
 /**

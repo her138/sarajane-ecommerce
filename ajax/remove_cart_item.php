@@ -2,11 +2,17 @@
 require_once '../config/session.php';
 require_once '../config/database.php';
 require_once '../includes/auth_check.php';
+require_once '../includes/csrf.php';
 
 header('Content-Type: application/json');
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     echo json_encode(['success' => false, 'message' => 'Invalid request']);
+    exit;
+}
+
+if (!verifyCSRFToken($_POST['csrf_token'] ?? '', 'cart')) {
+    echo json_encode(['success' => false, 'message' => 'Invalid security token']);
     exit;
 }
 

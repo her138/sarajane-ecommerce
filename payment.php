@@ -5,22 +5,6 @@ require_once __DIR__ . '/config/database.php';
 require_once __DIR__ . '/config/email.php';
 require_once __DIR__ . '/includes/csrf.php';
 
-
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    echo '<pre>';
-    echo "POST reached payment.php\n\n";
-    echo "POST data:\n";
-    print_r($_POST);
-
-    echo "\nSESSION data:\n";
-    print_r($_SESSION);
-
-    echo "\nCSRF valid: ";
-    var_dump(verifyCSRFToken($_POST['csrf_token'] ?? '', 'payment'));
-
-    echo '</pre>';
-    exit;
-}
 $pageTitle = "Payment";
 $error = '';
 

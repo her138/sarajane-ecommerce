@@ -1,8 +1,13 @@
 <?php
-require_once 'auth_check.php';
+// includes/admin_check.php
 
-if ($_SESSION['role'] !== 'admin') {
+require_once __DIR__ . '/auth_check.php';
+
+if (
+    empty($_SESSION['user_id']) ||
+    !isset($_SESSION['role']) ||
+    $_SESSION['role'] !== 'admin'
+) {
     header('Location: ../index.php');
-    exit();
+    exit;
 }
-?>

@@ -51,6 +51,8 @@ function verifyCSRFToken($token, $action = 'default') {
 
 function csrf_field($action = 'default') {
     $token = generateCSRFToken($action);
-    return '<input type="hidden" name="csrf_token" value="' . htmlspecialchars($token, ENT_QUOTES, 'UTF-8') . '">';
+
+    return '<input type="hidden" name="csrf_token" value="' .
+        htmlspecialchars($token, ENT_QUOTES, 'UTF-8') .
+        '">';
 }
-?>

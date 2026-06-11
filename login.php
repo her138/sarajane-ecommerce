@@ -8,7 +8,7 @@ require_once __DIR__ . '/includes/rate_limit.php';
 
 if (!empty($_SESSION['user_id'])) {
     header('Location: index.php');
-    exit();
+    exit;
 }
 
 $error = '';
@@ -53,12 +53,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                         $_SESSION['logged_in'] = true;
                         $_SESSION['is_logged_in'] = true;
-
                         $_SESSION['user_id'] = (int)$user['id'];
                         $_SESSION['username'] = $user['username'];
                         $_SESSION['email'] = $user['email'];
                         $_SESSION['role'] = $user['role'] ?? 'user';
                         $_SESSION['full_name'] = $user['full_name'] ?? '';
+                        $_SESSION['last_activity'] = time();
 
                         $_SESSION['user'] = [
                             'id' => (int)$user['id'],
@@ -68,8 +68,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             'full_name' => $user['full_name'] ?? ''
                         ];
 
-                        $_SESSION['last_activity'] = time();
-
                         $redirect = $_SESSION['redirect_after_login'] ?? 'index.php';
                         unset($_SESSION['redirect_after_login']);
 
@@ -78,7 +76,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         }
 
                         header('Location: ' . $redirect);
-                        exit();
+                        exit;
                     }
                 } else {
                     recordRateLimitAttempt('login', $ip);

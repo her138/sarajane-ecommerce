@@ -22,7 +22,7 @@ if (session_status() === PHP_SESSION_NONE) {
         'samesite' => 'Lax'
     ]);
 
-    require_once __DIR__ . '/config/session.php';
+    session_start();
 
     if (!isset($_SESSION['created_at'])) {
         $_SESSION['created_at'] = time();

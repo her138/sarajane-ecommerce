@@ -1,9 +1,10 @@
 <?php
 $pageTitle = "Login - SaraJane";
-require_once 'config/database.php';
-require_once 'config/session.php';
-require_once 'includes/csrf.php';
-require_once 'includes/rate_limit.php';
+
+require_once __DIR__ . '/config/session.php';
+require_once __DIR__ . '/config/database.php';
+require_once __DIR__ . '/includes/csrf.php';
+require_once __DIR__ . '/includes/rate_limit.php';
 
 if (isset($_SESSION['user_id'])) {
     header('Location: index.php');
@@ -11,43 +12,52 @@ if (isset($_SESSION['user_id'])) {
 }
 
 $error = '';
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    if (!verifyCSRFToken($_POST['csrf_token'] ?? '', 'login')) {
+    $csrfToken = $_POST['csrf_token'] ?? '';
+
+    if (!verifyCSRFToken($csrfToken, 'login')) {
+        unset($_SESSION['csrf_tokens']['login']);
         $error = 'Invalid security token. Please refresh the page and try again.';
     } else {
         $username = trim($_POST['username'] ?? '');
         $password = $_POST['password'] ?? '';
-        $ip = $_SERVER['REMOTE_ADDR'];
-        
+        $ip = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
+
         $rateCheck = checkRateLimit('login', $ip, 5, 15);
+
         if ($rateCheck !== true) {
             $error = $rateCheck;
         } else {
-            $stmt = $pdo->prepare("SELECT * FROM users WHERE username = ? OR email = ?");
+            $stmt = $pdo->prepare("SELECT * FROM users WHERE username = ? OR email = ? LIMIT 1");
             $stmt->execute([$username, $username]);
             $user = $stmt->fetch(PDO::FETCH_ASSOC);
-            
+
             if ($user && password_verify($password, $user['password'])) {
-                if ($user['email_verified'] != 1) {
-                    $error = 'Please verify your email address before logging in. Check your inbox for the verification link.';
-                    // Add resend link
-                    $error .= ' <a href="resend-verification.php?email=' . urlencode($username) . '">Resend verification email</a>';
+                if ((int)$user['email_verified'] !== 1) {
+                    $safeEmail = urlencode($user['email']);
+                    $error = 'Please verify your email address before logging in. Check your inbox for the verification link. ';
+                    $error .= '<a href="resend-verification.php?email=' . $safeEmail . '">Resend verification email</a>';
                 } else {
                     clearRateLimit('login', $ip);
+
+                    session_regenerate_id(true);
+
                     $_SESSION['user_id'] = $user['id'];
                     $_SESSION['username'] = $user['username'];
                     $_SESSION['email'] = $user['email'];
                     $_SESSION['role'] = $user['role'];
                     $_SESSION['full_name'] = $user['full_name'];
-                    
-                    if (isset($_SESSION['redirect_after_login'])) {
-                        $redirect = $_SESSION['redirect_after_login'];
-                        unset($_SESSION['redirect_after_login']);
-                        header("Location: $redirect");
-                    } else {
-                        header("Location: index.php");
+
+                    $redirect = $_SESSION['redirect_after_login'] ?? 'index.php';
+                    unset($_SESSION['redirect_after_login']);
+
+                    if (preg_match('/^https?:\/\//i', $redirect)) {
+                        $redirect = 'index.php';
                     }
-                    exit;
+
+                    header("Location: " . $redirect);
+                    exit();
                 }
             } else {
                 recordRateLimitAttempt('login', $ip);
@@ -56,13 +66,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
 }
+
+$loginTokenField = csrf_field('login');
 ?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?php echo $pageTitle; ?></title>
+    <title><?php echo htmlspecialchars($pageTitle); ?></title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
         body { background: #fefaf5; }
@@ -75,27 +87,35 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <div class="container">
         <div class="login-container">
             <h2 class="text-center mb-4">Login to SaraJane</h2>
+
             <?php if ($error): ?>
                 <div class="alert alert-danger"><?php echo $error; ?></div>
             <?php endif; ?>
-            <form method="POST" action="">
-                <?php echo csrf_field('login'); ?>
+
+            <form method="POST" action="login.php">
+                <?php echo $loginTokenField; ?>
+
                 <div class="mb-3">
                     <label for="username" class="form-label">Username or Email</label>
-                    <input type="text" class="form-control" id="username" name="username" required>
+                    <input type="text" class="form-control" id="username" name="username" required autocomplete="username">
                 </div>
+
                 <div class="mb-3">
                     <label for="password" class="form-label">Password</label>
-                    <input type="password" class="form-control" id="password" name="password" required>
+                    <input type="password" class="form-control" id="password" name="password" required autocomplete="current-password">
                 </div>
+
                 <div class="mb-3 text-end">
                     <a href="forgot-password.php" class="small">Forgot Password?</a>
                 </div>
+
                 <div class="d-grid gap-2">
                     <button type="submit" class="btn btn-primary btn-lg">Login</button>
                 </div>
             </form>
+
             <hr class="my-4">
+
             <div class="text-center">
                 <p class="mb-0">Don't have an account? <a href="register.php">Sign up here</a></p>
                 <p class="mt-2"><a href="index.php">Return to store</a></p>

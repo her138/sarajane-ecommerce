@@ -6,7 +6,7 @@ require_once __DIR__ . '/config/database.php';
 require_once __DIR__ . '/includes/csrf.php';
 require_once __DIR__ . '/includes/rate_limit.php';
 
-if (isset($_SESSION['user_id'])) {
+if (!empty($_SESSION['user_id'])) {
     header('Location: index.php');
     exit();
 }
@@ -24,44 +24,66 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $password = $_POST['password'] ?? '';
         $ip = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
 
-        $rateCheck = checkRateLimit('login', $ip, 5, 15);
-
-        if ($rateCheck !== true) {
-            $error = $rateCheck;
+        if ($username === '' || $password === '') {
+            $error = 'Please enter your username/email and password.';
         } else {
-            $stmt = $pdo->prepare("SELECT * FROM users WHERE username = ? OR email = ? LIMIT 1");
-            $stmt->execute([$username, $username]);
-            $user = $stmt->fetch(PDO::FETCH_ASSOC);
+            $rateCheck = checkRateLimit('login', $ip, 5, 15);
 
-            if ($user && password_verify($password, $user['password'])) {
-                if ((int)$user['email_verified'] !== 1) {
-                    $safeEmail = urlencode($user['email']);
-                    $error = 'Please verify your email address before logging in. Check your inbox for the verification link. ';
-                    $error .= '<a href="resend-verification.php?email=' . $safeEmail . '">Resend verification email</a>';
-                } else {
-                    clearRateLimit('login', $ip);
-
-                    session_regenerate_id(true);
-
-                    $_SESSION['user_id'] = $user['id'];
-                    $_SESSION['username'] = $user['username'];
-                    $_SESSION['email'] = $user['email'];
-                    $_SESSION['role'] = $user['role'];
-                    $_SESSION['full_name'] = $user['full_name'];
-
-                    $redirect = $_SESSION['redirect_after_login'] ?? 'index.php';
-                    unset($_SESSION['redirect_after_login']);
-
-                    if (preg_match('/^https?:\/\//i', $redirect)) {
-                        $redirect = 'index.php';
-                    }
-
-                    header("Location: " . $redirect);
-                    exit();
-                }
+            if ($rateCheck !== true) {
+                $error = $rateCheck;
             } else {
-                recordRateLimitAttempt('login', $ip);
-                $error = 'Invalid username or password';
+                $stmt = $pdo->prepare("
+                    SELECT id, username, email, password, role, full_name, email_verified
+                    FROM users
+                    WHERE username = ? OR email = ?
+                    LIMIT 1
+                ");
+                $stmt->execute([$username, $username]);
+                $user = $stmt->fetch(PDO::FETCH_ASSOC);
+
+                if ($user && password_verify($password, $user['password'])) {
+                    if (isset($user['email_verified']) && (int)$user['email_verified'] !== 1) {
+                        $safeEmail = urlencode($user['email']);
+                        $error = 'Please verify your email address before logging in. ';
+                        $error .= '<a href="resend-verification.php?email=' . $safeEmail . '">Resend verification email</a>';
+                    } else {
+                        clearRateLimit('login', $ip);
+
+                        session_regenerate_id(true);
+
+                        $_SESSION['logged_in'] = true;
+                        $_SESSION['is_logged_in'] = true;
+
+                        $_SESSION['user_id'] = (int)$user['id'];
+                        $_SESSION['username'] = $user['username'];
+                        $_SESSION['email'] = $user['email'];
+                        $_SESSION['role'] = $user['role'] ?? 'user';
+                        $_SESSION['full_name'] = $user['full_name'] ?? '';
+
+                        $_SESSION['user'] = [
+                            'id' => (int)$user['id'],
+                            'username' => $user['username'],
+                            'email' => $user['email'],
+                            'role' => $user['role'] ?? 'user',
+                            'full_name' => $user['full_name'] ?? ''
+                        ];
+
+                        $_SESSION['last_activity'] = time();
+
+                        $redirect = $_SESSION['redirect_after_login'] ?? 'index.php';
+                        unset($_SESSION['redirect_after_login']);
+
+                        if (preg_match('/^https?:\/\//i', $redirect)) {
+                            $redirect = 'index.php';
+                        }
+
+                        header('Location: ' . $redirect);
+                        exit();
+                    }
+                } else {
+                    recordRateLimitAttempt('login', $ip);
+                    $error = 'Invalid username or password.';
+                }
             }
         }
     }

@@ -2,6 +2,8 @@
 .env
 .env.local
 .env.production
+.env.*
+!.env.example
 
 # Logs and cache
 logs/
